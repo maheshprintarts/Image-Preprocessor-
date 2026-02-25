@@ -51,7 +51,7 @@ def progressive_resize(img, target_size, step=0.9):
     return current_img
 
 
-def optimize_image_size(img, step=0.98, is_prescaled=False, min_short_side=300):
+def optimize_image_size(img, step=0.98, is_prescaled=False, min_short_side=500):
     """
     Dynamically scales image down until perceptual quality peak is reached.
 
@@ -97,9 +97,9 @@ def optimize_image_size(img, step=0.98, is_prescaled=False, min_short_side=300):
         print(f"  -> Downscaled to {new_width}x{new_height} | Score: {score:.2f}")
 
         # --- Diminishing returns detection ---
-        # If the score improvement is less than 1.5% of previous score, not worth continuing
+        # If the score improvement is less than 0.5% of previous score, not worth continuing
         improvement = score - prev_score
-        if improvement < prev_score * 0.015 and score > prev_score:
+        if improvement < prev_score * 0.005 and score > prev_score:
             no_improvement_count += 1
             if no_improvement_count >= max_no_improvement_steps:
                 print(f"  [Guard] Diminishing returns detected ({no_improvement_count} flat steps). Stopping.")
