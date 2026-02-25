@@ -130,23 +130,23 @@ def process_and_overlay(input_path, output_path):
             with img_obj as img:
                 print(f"--- Processing: {input_path} ---")
                 
-                # Check file size. If > 20MB, scale it down first.
-                file_size_mb = os.path.getsize(input_path) / (1024 * 1024)
-                if file_size_mb > 20.0:
-                    print(f"Image is {file_size_mb:.2f}MB (over 20MB limit). Scaling down first...")
+                # Check pixel count. If > 20MP, scale it down first.
+                total_pixels = img.width * img.height
+                if total_pixels > 20_000_000:
+                    mp = total_pixels / 1_000_000
+                    print(f"Image is {mp:.2f}MP (over 20MP limit). Scaling down first...")
                     
-                    # We estimate how much to scale based on file size ratio
+                    # We estimate how much to scale based on pixel ratio
                     # Area scales quadratically with dimensions, so we use the square root
-                    scale_factor = (20.0 / file_size_mb) ** 0.5
+                    scale_factor = (20_000_000 / total_pixels) ** 0.5
                     
-                    # To be safe, we reduce it a bit more (e.g., 90% of the calculated ratio)
-                    # to account for compression inefficiencies.
-                    safe_scale_factor = scale_factor * 0.9 
+                    # To be safe, we reduce it a bit more (e.g., 95% of the calculated ratio)
+                    safe_scale_factor = scale_factor * 0.95 
                     
                     new_w = max(1, int(img.width * safe_scale_factor))
                     new_h = max(1, int(img.height * safe_scale_factor))
                     
-                    print(f"  -> Pre-scaling image from {img.width}x{img.height} to {new_w}x{new_h} to get under 20MB")
+                    print(f"  -> Pre-scaling image from {img.width}x{img.height} to {new_w}x{new_h} to get under 20MP")
                     # Use progressive_resize instead of a single massive resize step
                     img = progressive_resize(img, (new_w, new_h))
                     
