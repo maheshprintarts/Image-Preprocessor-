@@ -120,13 +120,32 @@ def process_and_overlay(input_path, output_path):
             with img_obj as img:
                 print(f"--- Processing: {input_path} ---")
                 
+                # Check file size. If > 20MB, scale it down first.
+                file_size_mb = os.path.getsize(input_path) / (1024 * 1024)
+                if file_size_mb > 20.0:
+                    print(f"Image is {file_size_mb:.2f}MB (over 20MB limit). Scaling down first...")
+                    
+                    # We estimate how much to scale based on file size ratio
+                    # Area scales quadratically with dimensions, so we use the square root
+                    scale_factor = (20.0 / file_size_mb) ** 0.5
+                    
+                    # To be safe, we reduce it a bit more (e.g., 90% of the calculated ratio)
+                    # to account for compression inefficiencies.
+                    safe_scale_factor = scale_factor * 0.9 
+                    
+                    new_w = max(1, int(img.width * safe_scale_factor))
+                    new_h = max(1, int(img.height * safe_scale_factor))
+                    
+                    print(f"  -> Pre-scaling image from {img.width}x{img.height} to {new_w}x{new_h} to get under 20MB")
+                    img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+                
                 # Convert to RGBA for consistent handling
                 if img.mode != 'RGBA':
                     img = img.convert('RGBA')
                 
                 # Dynamic Perceptual Target Scaling 
                 rgb_check = img.convert('RGB')
-                optimized_rgb = optimize_image_size(rgb_check, target_score=600.0, step=0.95)
+                optimized_rgb = optimize_image_size(rgb_check, target_score=550.0, step=0.95)
                 
                 # Apply optimization resize to RGBA original if changed
                 final_size = optimized_rgb.size
@@ -134,10 +153,10 @@ def process_and_overlay(input_path, output_path):
                     print(f"Applying Target Scale dimensions: {final_size}")
                     img = progressive_resize(img, final_size)
                 
-                # Save Final Output guaranteeing exactly 96 DPI
+                # Save Final Output guaranteeing exactly 300 DPI
                 if output_path.lower().endswith(('.jpg', '.jpeg')):
                     final_img = img.convert('RGB')
-                    final_img.save(output_path, dpi=(300, 300), quality=300, subsampling=0, optimize=True, progressive=True)
+                    final_img.save(output_path, dpi=(300, 300), quality=100, subsampling=0, optimize=True, progressive=True)
                 else:
                     final_img = img  # Keep RGBA for PNG
                     final_img.save(output_path, dpi=(300, 300))
