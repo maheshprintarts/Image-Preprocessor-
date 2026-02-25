@@ -73,7 +73,7 @@ def progressive_resize(img, target_size, step=0.9):
     laplacian_var = cv2.Laplacian(open_cv_image, cv2.CV_64F).var()
     return laplacian_var
 
-def optimize_image_size(img, target_score=600.0, step=0.95, is_prescaled=False):
+def optimize_image_size(img, target_score=600.0, step=0.98, is_prescaled=False):
     """
     Dynamically scales image globally until it matches the "10% reference ratio" crispness of ~600.
     """
@@ -167,23 +167,42 @@ def process_and_overlay(input_path, output_path):
                 
                 # Dynamic Perceptual Target Scaling 
                 rgb_check = img.convert('RGB')
-                optimized_rgb = optimize_image_size(rgb_check, target_score=550.0, step=0.95, is_prescaled=is_prescaled)
+                optimized_rgb = optimize_image_size(rgb_check, target_score=600.0, step=0.98, is_prescaled=is_prescaled)
                 
                 # Apply optimization resize to RGBA original if changed
                 final_size = optimized_rgb.size
                 if final_size != img.size:
                     print(f"Applying Target Scale dimensions: {final_size}")
                     img = progressive_resize(img, final_size)
-                
-                # Save Final Output guaranteeing exactly 300 DPI
+                    
+                # Ensure the final output fits within the maximum screen-size limits
+                # Threshold for scaling down is 2000px in either dimension
+                # Target screen fit boundary is 1920x1080
+                max_w, max_h = 1920, 1080
+                if img.width > 2000 or img.height > 2000:
+                    print(f"Image {img.width}x{img.height} exceeds 2000px threshold. Fitting into screen boundary ({max_w}x{max_h})...")
+                    width_ratio = max_w / img.width
+                    height_ratio = max_h / img.height
+                    
+                    # We use the *minimum* scaling ratio to ensure both dimensions 
+                    # fit perfectly within the limit box without being stretched.
+                    scale = min(width_ratio, height_ratio)
+                    
+                    fit_w = max(1, int(img.width * scale))
+                    fit_h = max(1, int(img.height * scale))
+                    
+                    print(f"  -> Applying Final Screen Boundary Scale: {fit_w}x{fit_h}")
+                    img = img.resize((fit_w, fit_h), Image.Resampling.LANCZOS)
+                    
+                # Save Final Output guaranteeing exactly 600 DPI
                 if output_path.lower().endswith(('.jpg', '.jpeg')):
                     final_img = img.convert('RGB')
-                    final_img.save(output_path, dpi=(300, 300), quality=100, subsampling=0, optimize=True, progressive=True)
+                    final_img.save(output_path, dpi=(600, 600), quality=100, subsampling=0, optimize=True, progressive=True)
                 else:
                     final_img = img  # Keep RGBA for PNG
-                    final_img.save(output_path, dpi=(300, 300))
+                    final_img.save(output_path, dpi=(600, 600))
                 
-                print(f"Saved optimized image to: {output_path} (Size: {final_img.size[0]}x{final_img.size[1]} @ 300 DPI)\n")
+                print(f"Saved optimized image to: {output_path} (Size: {final_img.size[0]}x{final_img.size[1]} @ 600 DPI)\n")
                 
     except Exception as e:
         print(f"Error processing {input_path}: {e}")
