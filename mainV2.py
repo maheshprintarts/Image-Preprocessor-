@@ -167,7 +167,7 @@ def process_and_overlay(input_path, output_path):
                 
                 # Dynamic Perceptual Target Scaling 
                 rgb_check = img.convert('RGB')
-                optimized_rgb = optimize_image_size(rgb_check, target_score=600.0, step=0.98, is_prescaled=is_prescaled)
+                optimized_rgb = optimize_image_size(rgb_check, target_score=800.0, step=0.98, is_prescaled=is_prescaled)
                 
                 # Apply optimization resize to RGBA original if changed
                 final_size = optimized_rgb.size
@@ -197,10 +197,10 @@ def process_and_overlay(input_path, output_path):
                 # Save Final Output guaranteeing exactly 600 DPI
                 if output_path.lower().endswith(('.jpg', '.jpeg')):
                     final_img = img.convert('RGB')
-                    final_img.save(output_path, dpi=(600, 600), quality=100, subsampling=0, optimize=True, progressive=True)
+                    final_img.save(output_path, dpi=(300, 300), quality=100, subsampling=0, optimize=True, progressive=True)
                 else:
                     final_img = img  # Keep RGBA for PNG
-                    final_img.save(output_path, dpi=(600, 600))
+                    final_img.save(output_path, dpi=(300, 300))
                 
                 print(f"Saved optimized image to: {output_path} (Size: {final_img.size[0]}x{final_img.size[1]} @ 600 DPI)\n")
                 
