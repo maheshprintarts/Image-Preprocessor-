@@ -1,0 +1,25 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+env/
+ENV/
+
+# Project specific folders/files
+input_images/
+processed_images/
+density_analysis/
+fake_pixel_analysis/
+output_path/
+
+# Output and backup files
+*.zip
+*.txt
+!requirements.txt
+
+# OS generated files
+.DS_Store
+Thumbs.db
