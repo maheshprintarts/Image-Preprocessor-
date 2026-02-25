@@ -73,7 +73,7 @@ def progressive_resize(img, target_size, step=0.9):
     laplacian_var = cv2.Laplacian(open_cv_image, cv2.CV_64F).var()
     return laplacian_var
 
-def optimize_image_size(img, target_score=600.0, step=0.95):
+def optimize_image_size(img, target_score=600.0, step=0.95, is_prescaled=False):
     """
     Dynamically scales image globally until it matches the "10% reference ratio" crispness of ~600.
     """
@@ -82,6 +82,16 @@ def optimize_image_size(img, target_score=600.0, step=0.95):
     
     score = get_sharpness_score(current_img)
     print(f"Initial Sharpness: {score:.2f} (Target: {target_score})")
+    
+    # If it was pre-scaled from >20MB, its sharpness artificially skyrocketed.
+    # We must treat its current high score as the baseline and target a slightly 
+    # higher sharpness to force it to run at least one or two perceptual downscaling iterations.
+    if is_prescaled and score > target_score:
+        print(f"  [Notice] Image was pre-scaled. Adjusting target from {target_score} to match new density.")
+        # We set the target to its current score + a small margin so it performs
+        # the same relative perceptual scaling as a normal image.
+        target_score = score * 1.05
+        print(f"  [Notice] New Adaptive Target Score: {target_score:.2f}")
     
     while score < target_score:
         new_width = max(1, int(current_img.width * step))
@@ -137,7 +147,19 @@ def process_and_overlay(input_path, output_path):
                     new_h = max(1, int(img.height * safe_scale_factor))
                     
                     print(f"  -> Pre-scaling image from {img.width}x{img.height} to {new_w}x{new_h} to get under 20MB")
-                    img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+                    # Use progressive_resize instead of a single massive resize step
+                    img = progressive_resize(img, (new_w, new_h))
+                    
+                    # Because we downscaled massively, the pixel density (sharpness) 
+                    # will jump significantly (e.g., from 500 to 1500).
+                    # We need to calculate the *new* sharpness score now.
+                    post_scale_score = get_sharpness_score(img)
+                    print(f"  -> Sharpness after pre-scale: {post_scale_score:.2f}")
+                    
+                    # We pass a flag to tell the optimization it's a pre-scaled image
+                    is_prescaled = True
+                else:
+                    is_prescaled = False
                 
                 # Convert to RGBA for consistent handling
                 if img.mode != 'RGBA':
@@ -145,7 +167,7 @@ def process_and_overlay(input_path, output_path):
                 
                 # Dynamic Perceptual Target Scaling 
                 rgb_check = img.convert('RGB')
-                optimized_rgb = optimize_image_size(rgb_check, target_score=550.0, step=0.95)
+                optimized_rgb = optimize_image_size(rgb_check, target_score=550.0, step=0.95, is_prescaled=is_prescaled)
                 
                 # Apply optimization resize to RGBA original if changed
                 final_size = optimized_rgb.size
