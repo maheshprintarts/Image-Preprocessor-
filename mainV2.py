@@ -192,7 +192,7 @@ def process_and_overlay(input_path, output_path):
                     final_img = img  # Keep RGBA for PNG
                     final_img.save(output_path, dpi=(300, 300))
 
-                print(f"Saved: {output_path} ({final_img.size[0]}x{final_img.size[1]} @ 300 DPI)\n")
+                print(f"Saved optimized image to: {output_path} (Size: {final_img.size[0]}x{final_img.size[1]} @ 300 DPI)\n")
 
     except Exception as e:
         print(f"Error processing {input_path}: {e}")
